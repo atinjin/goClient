@@ -5,21 +5,19 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"encoding/json"
+	"bytes"
 )
 
 func main() {
+	//Login
+	var encryptPassword = ExampleNewGCMEncrypter([]byte("exampleplaintext"))
+	loginRequest := LoginRequest{"admin", string(encryptPassword[:]), 4}
 
-	var authHeader = string("TSM ")
-
-	var ciphertext = ExampleNewGCMEncrypter([]byte("exampleplaintext"))
-
-
-
-	println(authHeader)
+	loginJson, err := json.Marshal(loginRequest)
 
 	client := http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, "http://localhost:8080/test", nil)
-	req.Header.Add("Authorization", "TSM "+ciphertext)
+	req, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/session", bytes.NewBuffer(loginJson))
 	res, _ := client.Do(req)
 
 	resBody, err := ioutil.ReadAll(res.Body)
@@ -28,9 +26,12 @@ func main() {
 		log.Fatal("Error - %s\n", err)
 	}
 	fmt.Printf("%s\n", resBody)
+	var ciphertext = ExampleNewGCMEncrypter([]byte("exampleplaintext"))
+	var authHeader = string("TSM ")
+	println(authHeader)
 
 	req, _ = http.NewRequest(http.MethodGet, "http://localhost:8080/session", nil)
-	req.Header.Add("Authorization", "TSM ")
+	req.Header.Add("Authorization", string(ciphertext[:]))
 	res, _ = client.Do(req)
 
 	resBody, err = ioutil.ReadAll(res.Body)
